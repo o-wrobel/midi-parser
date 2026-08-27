@@ -30,7 +30,7 @@ pub fn deinit(self: Midi, allocator: std.mem.Allocator) void {
 }
 
 pub const Track = struct {
-    events: []MtrkEvent,
+    events: []TrackEvent,
 
     pub fn deinit(self: Track, allocator: std.mem.Allocator) void {
         for (self.events) |e| {
@@ -44,19 +44,42 @@ pub const Track = struct {
     }
 };
 
-pub const MtrkEvent = struct {
+pub const TrackEvent = struct {
     delta: u28, // Stored in file as a variable length value
     event: Event
 };
 pub const Event = union (enum) {
     pub const MidiMessage = struct {
-        type: u4,
+        pub const Type = enum (u4) {
+            note_off = 0b1000,
+            note_on = 0b1001,
+            _,
+        };
+        type: Type,
         channel: u4,
         data_len: u8,
         data: [2]u8
     };
     pub const Meta = struct {
-        type: u8,
+        const Type = enum (u8) {
+            sequence_number = 0x00,
+            text,
+            copyright_notice,
+            track_name,
+            instrument_name,
+            lyrics,
+            marker,
+            cue_point,
+            channel_prefix,
+            end_track = 0x2f,
+
+            set_tempo = 0x51,
+            time_signature = 0x58,
+            key_signature = 0x59,
+            sequencer_specific = 0x7F,
+            _
+        };
+        type: Type,
         data: []u8
     };
     midi: MidiMessage,
@@ -118,7 +141,7 @@ fn readTrackChunk(reader: *Io.Reader, allocator: std.mem.Allocator) !Track {
     const title = try reader.take(4);
     std.debug.assert(std.mem.eql(u8, title, "MTrk"));
     const byte_count = try reader.takeInt(u32, .big);
-    var events: std.ArrayList(MtrkEvent) = try .initCapacity(allocator, 100);
+    var events: std.ArrayList(TrackEvent) = try .initCapacity(allocator, 100);
 
     var running_status: ?u8 = null;
     const end = reader.seek + byte_count;
@@ -133,7 +156,7 @@ fn readTrackChunk(reader: *Io.Reader, allocator: std.mem.Allocator) !Track {
             }
         );
 
-        if (event == .meta and event.meta.type == 0x2F) break;
+        if (event == .meta and @intFromEnum(event.meta.type) == 0x2F) break;
     }
     return .{ .events = try events.toOwnedSlice(allocator) };
 
@@ -150,7 +173,7 @@ fn readEvent(reader: *Io.Reader, running_status: *?u8, allocator: std.mem.Alloca
         const data_len = try readVariableLengthInt(u28, reader);
         const data = try reader.take(data_len);
         return .{ .meta = .{
-            .type = event_type,
+            .type = @enumFromInt(event_type),
             .data = try allocator.dupe(u8, data)}
         };
     }
@@ -176,7 +199,7 @@ fn readEvent(reader: *Io.Reader, running_status: *?u8, allocator: std.mem.Alloca
 
     return .{ .midi = .{
         .channel = channel,
-        .type = message_type,
+        .type = @enumFromInt(message_type),
         .data_len = data_len,
         .data = data
     }};
