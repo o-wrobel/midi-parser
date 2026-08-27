@@ -1,5 +1,5 @@
 .{
-    .name = .midi_parser,
+    .name = .tinymidi,
     .version = "0.0.1",
     .minimum_zig_version = "0.16.0",
     .paths = .{
@@ -8,5 +8,5 @@
         "build.zig.zon",
         "Billie-Jean.mid"
     },
-    .fingerprint = 0x58f3d5dfc58dd965,
+    .fingerprint = 0x2e9f0d8f25b1c611,
 }
