@@ -193,3 +193,16 @@ fn readVariableLengthInt(T: type, reader: *Io.Reader) !T {
         else => unreachable
     }
 }
+
+test "declarations" { std.testing.refAllDecls(Midi); }
+
+test initFile {
+    const io = std.testing.io;
+    const allocator = std.testing.allocator;
+
+    const cwd = Io.Dir.cwd();
+    const file = try cwd.openFile(io, "Billie-Jean.mid", .{});
+
+    const midi = try Midi.initFile(file, io, allocator);
+    defer midi.deinit(allocator);
+}

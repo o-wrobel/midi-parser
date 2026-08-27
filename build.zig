@@ -4,10 +4,14 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const root = b.addModule("tinymidi", .{
-        .root_source_file = b.path("lib/root.zig"),
+    const root = b.addModule("Midi", .{
+        .root_source_file = b.path("lib/Midi.zig"),
         .target = target,
         .optimize = optimize
     });
-    _ = root;
+    const tests = b.addTest(.{ .root_module = root });
+    const run_tests = b.addRunArtifact(tests);
+    const test_step = b.step("test", "Run tests");
+    test_step.dependOn(&run_tests.step);
+
 }
