@@ -1,0 +1,12 @@
+.{
+    .name = .midi_parser,
+    .version = "0.0.1",
+    .minimum_zig_version = "0.16.0",
+    .paths = .{
+        "lib",
+        "build.zig",
+        "build.zig.zon",
+        "Billie-Jean.mid"
+    },
+    .fingerprint = 0x58f3d5dfc58dd965,
+}
