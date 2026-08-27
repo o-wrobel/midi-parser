@@ -17,6 +17,11 @@ pub fn initFile(file: Io.File, io: Io, allocator: Allocator) !Midi {
     return try readMidiFile(reader, allocator);
 }
 
+pub fn initMemory(buffer: []const u8, allocator: Allocator) !Midi {
+    var reader = Io.Reader.fixed(buffer);
+    return try readMidiFile(&reader, allocator);
+}
+
 pub fn deinit(self: Midi, allocator: std.mem.Allocator) void {
     for (self.tracks) |t| {
         t.deinit(allocator);
@@ -201,8 +206,16 @@ test initFile {
     const allocator = std.testing.allocator;
 
     const cwd = Io.Dir.cwd();
-    const file = try cwd.openFile(io, "Billie-Jean.mid", .{});
+    const file = try cwd.openFile(io, "lib/Billie-Jean.mid", .{});
 
     const midi = try Midi.initFile(file, io, allocator);
+    defer midi.deinit(allocator);
+}
+
+test initMemory {
+    const allocator = std.testing.allocator;
+
+    const memory = @embedFile("Billie-Jean.mid");
+    const midi = try Midi.initMemory(memory, allocator);
     defer midi.deinit(allocator);
 }

@@ -6,7 +6,7 @@
         "lib",
         "build.zig",
         "build.zig.zon",
-        "Billie-Jean.mid"
+        // "Billie-Jean.mid"
     },
     .fingerprint = 0x2e9f0d8f25b1c611,
 }
