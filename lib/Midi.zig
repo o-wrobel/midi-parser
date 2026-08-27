@@ -2,6 +2,10 @@ const std = @import("std");
 const Io = std.Io;
 const Allocator = std.mem.Allocator;
 
+pub const Track = @import("Track.zig");
+pub const TimedEvent = Track.TimedEvent;
+pub const Event = Track.Event;
+
 pub const Midi = @This();
 
 format: Format,
@@ -29,83 +33,6 @@ pub fn deinit(self: Midi, allocator: std.mem.Allocator) void {
     allocator.free(self.tracks);
 }
 
-// Track
-
-pub const Track = struct {
-    events: []TrackEvent,
-
-    pub fn deinit(self: Track, allocator: std.mem.Allocator) void {
-        for (self.events) |e| {
-            switch (e.event) {
-                .sysex => |s| { allocator.free(s); },
-                .meta => |m| { allocator.free(m.data); },
-                else => {}
-            }
-        }
-        allocator.free(self.events);
-    }
-};
-
-pub const TrackEvent = struct {
-    delta: u28, // Stored in file as a variable length value
-    event: Event
-};
-
-pub const Event = union (enum) {
-    pub const MidiMessage = struct {
-        pub const Type = enum (u4) {
-            note_off = 0b1000,
-            note_on = 0b1001,
-            control_change = 0b1011,
-            program_change = 0b1100,
-            _,
-        };
-        type: Type,
-        channel: u4,
-        data_len: u8,
-        data: [2]u8
-    };
-    pub const Meta = struct {
-        const Type = enum (u8) {
-            sequence_number = 0x00,
-            text,
-            copyright_notice,
-            track_name,
-            instrument_name,
-            lyrics,
-            marker,
-            cue_point,
-            channel_prefix,
-            end_track = 0x2f,
-
-            set_tempo = 0x51,
-            time_signature = 0x58,
-            key_signature = 0x59,
-            sequencer_specific = 0x7F,
-            _
-        };
-        type: Type,
-        data: []u8
-    };
-    midi: MidiMessage,
-    sysex: []u8,
-    meta: Meta
-};
-
-pub const Key = enum (u8) {
-    c0 = 0, cs0, d0, ds0, e0, f0, fs0, g0, gs0, a0, as0, b0,
-    c1, cs1, d1, ds1, e1, f1, fs1, g1, gs1, a1, as1, b1,
-    c2, cs2, d2, ds2, e2, f2, fs2, g2, gs2, a2, as2, b2,
-    c3, cs3, d3, ds3, e3, f3, fs3, g3, gs3, a3, as3, b3,
-    c4, cs4, d4, ds4, e4, f4, fs4, g4, gs4, a4, as4, b4,
-    c5, cs5, d5, ds5, e5, f5, fs5, g5, gs5, a5, as5, b5,
-    c6, cs6, d6, ds6, e6, f6, fs6, g6, gs6, a6, as6, b6,
-    c7, cs7, d7, ds7, e7, f7, fs7, g7, gs7, a7, as7, b7,
-    c8, cs8, d8, ds8, e8, f8, fs8, g8, gs8, a8, as8, b8,
-    c9, cs9, d9, ds9, e9, f9, fs9, g9, gs9, a9, as9, b9,
-    c10, cs10, d10, ds10, e10, f10, fs10, g10,
-};
-
 // Header
 
 pub const Header = struct {
@@ -128,6 +55,20 @@ pub const Division = packed struct (u16) {
 
     format: Type,
     value: u15,
+};
+
+pub const Key = enum (u8) {
+    c0 = 0, cs0, d0, ds0, e0, f0, fs0, g0, gs0, a0, as0, b0,
+    c1, cs1, d1, ds1, e1, f1, fs1, g1, gs1, a1, as1, b1,
+    c2, cs2, d2, ds2, e2, f2, fs2, g2, gs2, a2, as2, b2,
+    c3, cs3, d3, ds3, e3, f3, fs3, g3, gs3, a3, as3, b3,
+    c4, cs4, d4, ds4, e4, f4, fs4, g4, gs4, a4, as4, b4,
+    c5, cs5, d5, ds5, e5, f5, fs5, g5, gs5, a5, as5, b5,
+    c6, cs6, d6, ds6, e6, f6, fs6, g6, gs6, a6, as6, b6,
+    c7, cs7, d7, ds7, e7, f7, fs7, g7, gs7, a7, as7, b7,
+    c8, cs8, d8, ds8, e8, f8, fs8, g8, gs8, a8, as8, b8,
+    c9, cs9, d9, ds9, e9, f9, fs9, g9, gs9, a9, as9, b9,
+    c10, cs10, d10, ds10, e10, f10, fs10, g10,
 };
 
 // Low level reading functions
@@ -162,7 +103,7 @@ fn readTrackChunk(reader: *Io.Reader, allocator: std.mem.Allocator) !Track {
     const title = try reader.take(4);
     std.debug.assert(std.mem.eql(u8, title, "MTrk"));
     const byte_count = try reader.takeInt(u32, .big);
-    var events: std.ArrayList(TrackEvent) = try .initCapacity(allocator, 100);
+    var events: std.ArrayList(TimedEvent) = try .initCapacity(allocator, 100);
 
     var running_status: ?u8 = null;
     const end = reader.seek + byte_count;
