@@ -113,7 +113,7 @@ fn readTrackChunk(reader: *Io.Reader, allocator: std.mem.Allocator) !Track {
         try events.append(
             allocator,
             .{
-                .delta = delta,
+                .delta = .{ .ticks = delta },
                 .event = event
             }
         );

@@ -17,7 +17,7 @@ pub fn deinit(self: Track, allocator: Allocator) void {
 }
 
 pub const TimedEvent = struct {
-    delta: u28, // Stored in file as a variable length value
+    delta: Delta,
     event: Event
 };
 
@@ -60,4 +60,16 @@ pub const Event = union (enum) {
     midi: MidiMessage,
     sysex: []u8,
     meta: MetaMessage
+};
+
+pub const Delta = struct {
+    ticks: u28,
+
+    pub inline fn fromMicroseconds(milliseconds: u32, tempo: u32, ticks_per_beat: u32) Delta {
+        return .{ .ticks = milliseconds * ticks_per_beat / tempo };
+    }
+
+    pub inline fn toMicroseconds(delta: Delta, tempo: u32, ticks_per_beat: u32) u32 {
+        return @as(u32, delta.ticks) * tempo / ticks_per_beat;
+    }
 };
